@@ -80,6 +80,12 @@ const getFlags = (language: Language, srcPath: string): string[] => {
                 getCppOutputArgPref(),
                 getBinSaveLocation(srcPath),
                 ...args,
+                '-std=c++17',
+                '-O2',
+                '-Wall',
+                '-Wextra',
+                '-include',
+                'bits/stdc++.h',
                 '-D',
                 'DEBUG',
                 '-D',
@@ -340,15 +346,22 @@ export const compileFile = async (srcPath: string): Promise<boolean> => {
     getJudgeViewProvider().extensionToJudgeViewMessage({
         command: 'compiling-start',
     });
-    const flags: string[] = getFlags(language, srcPath);
+    let flags: string[] = getFlags(language, srcPath);
+
+    let command = language.compiler;
+    if (['cpp', 'cc', 'cxx'].includes(language.name)) {
+        command = 'ccache';
+        flags = [language.compiler, ...flags];
+    }
+
     globalThis.logger.log('Compiling with flags', flags);
     const result = new Promise<boolean>((resolve) => {
         let compiler;
         try {
-            compiler = spawn(language.compiler, flags, spawnOpts);
+            compiler = spawn(command, flags, spawnOpts);
         } catch (err) {
             vscode.window.showErrorMessage(
-                `Could not launch the compiler ${language.compiler}. Is it installed?`,
+                `Could not launch the compiler ${command}. Is it installed?`,
             );
             throw err;
         }
